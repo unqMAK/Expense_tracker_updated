@@ -1,93 +1,104 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { FaUser, FaLock } from 'react-icons/fa';
+import { FiMail, FiLock, FiLogIn } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
+import { useNotification } from '../context/NotificationContext';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const Login = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
-  const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
+  const { showNotification } = useNotification();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    setError('');
-    
-    const result = await login(formData.email, formData.password);
-    if (!result.success) {
-      setError(result.error);
+
+    try {
+      const result = await login(formData.email, formData.password);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      showNotification('Login successful!', 'success');
+    } catch (error) {
+      showNotification(error.message || 'Login failed', 'error');
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 50 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -50 }}
-      className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center p-4"
-    >
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-400 to-purple-400" />
-        
-        <h1 className="text-3xl font-bold text-gray-800 mb-8 text-center">
-          Welcome Back
-        </h1>
-
-        {error && (
-          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="relative">
-            <FaUser className="absolute top-1/2 left-3 transform -translate-y-1/2 text-gray-400" />
-            <input
-              type="email"
-              placeholder="Email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:border-purple-500 transition-colors"
-              required
-            />
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-100 to-indigo-100 p-4">
+      <div className="w-full max-w-md">
+        <div className="bg-white p-8 rounded-lg shadow-lg">
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-indigo-600 mb-2">
+              Welcome Back
+            </h1>
+            <p className="text-gray-500">Sign in to continue to your account</p>
           </div>
 
-          <div className="relative">
-            <FaLock className="absolute top-1/2 left-3 transform -translate-y-1/2 text-gray-400" />
-            <input
-              type="password"
-              placeholder="Password"
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:border-purple-500 transition-colors"
-              required
-            />
+          <form onSubmit={handleSubmit} className="space-y-6 mt-6">
+            <div className="space-y-4">
+              <div className="relative">
+                {!formData.email && (
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                    <FiMail size={16} />
+                  </div>
+                )}
+                <input
+                  type="email"
+                  placeholder="Email address"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className={`form-input ${formData.email ? 'pl-4' : 'pl-12'} transition-all duration-200`}
+                  required
+                />
+              </div>
+
+              <div className="relative">
+                {!formData.password && (
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                    <FiLock size={16} />
+                  </div>
+                )}
+                <input
+                  type="password"
+                  placeholder="Password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  className={`form-input ${formData.password ? 'pl-4' : 'pl-12'} transition-all duration-200`}
+                  required
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 flex items-center justify-center gap-2"
+            >
+              {isLoading ? (
+                <LoadingSpinner size="sm" />
+              ) : (
+                <>
+                  <FiLogIn />
+                  Sign In
+                </>
+              )}
+            </button>
+          </form>
+
+          <div className="text-center text-sm mt-4">
+            <span className="text-gray-500">Don't have an account? </span>
+            <Link to="/register" className="text-indigo-600 hover:text-indigo-700 font-medium">
+              Sign up
+            </Link>
           </div>
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full bg-gradient-to-r from-blue-500 to-purple-500 text-white py-3 rounded-lg hover:opacity-90 transition-opacity font-semibold disabled:opacity-50"
-          >
-            {isLoading ? 'Signing in...' : 'Sign In'}
-          </button>
-        </form>
-
-        <p className="text-center mt-6 text-gray-600">
-          Don't have an account?{' '}
-          <Link
-            to="/register"
-            className="text-purple-600 hover:underline font-semibold"
-          >
-            Create Account
-          </Link>
-        </p>
+        </div>
       </div>
-    </motion.div>
+    </div>
   );
 };
 

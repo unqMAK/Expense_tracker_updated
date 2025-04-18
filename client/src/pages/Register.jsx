@@ -1,102 +1,168 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { FaUser, FaEnvelope, FaLock } from 'react-icons/fa';
+import { FiUser, FiMail, FiLock, FiUserPlus } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
+import { useNotification } from '../context/NotificationContext';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const Register = () => {
-  const [formData, setFormData] = useState({ email: '', password: '' });
-  const [error, setError] = useState('');
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
+  });
   const [isLoading, setIsLoading] = useState(false);
   const { register } = useAuth();
+  const { showNotification } = useNotification();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    setError('');
-    
-    const result = await register(formData.email, formData.password);
-    if (!result.success) {
-      setError(result.error);
+    console.log('Form submitted with data:', formData);
+
+    // Validate password length
+    if (formData.password.length < 6) {
+      showNotification('Password must be at least 6 characters long', 'error');
+      setIsLoading(false);
+      return;
     }
-    
-    setIsLoading(false);
+
+    if (formData.password !== formData.confirmPassword) {
+      console.log('Password mismatch');
+      showNotification('Passwords do not match', 'error');
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      console.log('Calling register function with:', formData.name, formData.email);
+      const result = await register(formData.name, formData.email, formData.password);
+      console.log('Register result:', result);
+
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      showNotification('Registration successful!', 'success');
+    } catch (error) {
+      console.error('Registration error in component:', error);
+
+      // Show more specific error messages
+      if (error.message.includes('minimum allowed length')) {
+        showNotification('Password must be at least 6 characters long', 'error');
+      } else if (error.message.includes('Email already registered')) {
+        showNotification('This email is already registered', 'error');
+      } else {
+        showNotification(error.message || 'Registration failed', 'error');
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 50 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -50 }}
-      className="min-h-screen bg-gradient-to-br from-green-500 to-cyan-600 flex items-center justify-center p-4"
-    >
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-green-400 to-cyan-400" />
-        
-        <h1 className="text-3xl font-bold text-gray-800 mb-8 text-center">
-          Create Account
-        </h1>
-
-        {error && (
-          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="relative">
-            <FaUser className="absolute top-1/2 left-3 transform -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Full Name"
-              className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:border-cyan-500 transition-colors"
-            />
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-100 to-indigo-100 p-4">
+      <div className="w-full max-w-md">
+        <div className="bg-white p-8 rounded-lg shadow-lg">
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-indigo-600 mb-2">
+              Create Account
+            </h1>
+            <p className="text-gray-500">Start managing your expenses today</p>
           </div>
 
-          <div className="relative">
-            <FaEnvelope className="absolute top-1/2 left-3 transform -translate-y-1/2 text-gray-400" />
-            <input
-              type="email"
-              placeholder="Email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:border-cyan-500 transition-colors"
-              required
-            />
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-4">
+              <div className="relative">
+                {!formData.name && (
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                    <FiUser size={16} />
+                  </div>
+                )}
+                <input
+                  type="text"
+                  placeholder="Full Name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className={`form-input ${formData.name ? 'pl-4' : 'pl-12'} transition-all duration-200`}
+                  required
+                />
+              </div>
+
+              <div className="relative">
+                {!formData.email && (
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                    <FiMail size={16} />
+                  </div>
+                )}
+                <input
+                  type="email"
+                  placeholder="Email address"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className={`form-input ${formData.email ? 'pl-4' : 'pl-12'} transition-all duration-200`}
+                  required
+                />
+              </div>
+
+              <div className="relative">
+                {!formData.password && (
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                    <FiLock size={16} />
+                  </div>
+                )}
+                <input
+                  type="password"
+                  placeholder="Password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  className={`form-input ${formData.password ? 'pl-4' : 'pl-12'} transition-all duration-200`}
+                  required
+                />
+              </div>
+
+              <div className="relative">
+                {!formData.confirmPassword && (
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                    <FiLock size={16} />
+                  </div>
+                )}
+                <input
+                  type="password"
+                  placeholder="Confirm Password"
+                  value={formData.confirmPassword}
+                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                  className={`form-input ${formData.confirmPassword ? 'pl-4' : 'pl-12'} transition-all duration-200`}
+                  required
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 flex items-center justify-center gap-2"
+            >
+              {isLoading ? (
+                <LoadingSpinner size="sm" />
+              ) : (
+                <>
+                  <FiUserPlus />
+                  Create Account
+                </>
+              )}
+            </button>
+          </form>
+
+          <div className="text-center text-sm mt-4">
+            <span className="text-gray-500">Already have an account? </span>
+            <Link to="/" className="text-indigo-600 hover:text-indigo-700 font-medium">
+              Sign in
+            </Link>
           </div>
-
-          <div className="relative">
-            <FaLock className="absolute top-1/2 left-3 transform -translate-y-1/2 text-gray-400" />
-            <input
-              type="password"
-              placeholder="Password"
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:border-cyan-500 transition-colors"
-              required
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full bg-gradient-to-r from-green-500 to-cyan-500 text-white py-3 rounded-lg hover:opacity-90 transition-opacity font-semibold disabled:opacity-50"
-          >
-            {isLoading ? 'Creating Account...' : 'Create Account'}
-          </button>
-        </form>
-
-        <p className="text-center mt-6 text-gray-600">
-          Already have an account?{' '}
-          <Link
-            to="/"
-            className="text-cyan-600 hover:underline font-semibold"
-          >
-            Login Here
-          </Link>
-        </p>
+        </div>
       </div>
-    </motion.div>
+    </div>
   );
 };
 

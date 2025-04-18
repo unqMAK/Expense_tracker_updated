@@ -1,36 +1,63 @@
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
-import { AnimatePresence } from 'framer-motion';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ExpenseTracker from './pages/ExpenseTracker';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
-import { pageTransition } from './utils/animations';
 
-const ProtectedRoute = ({ children }) => {
+const PrivateRoute = ({ children }) => {
   const { user } = useAuth();
-  if (!user) return <Navigate to="/" />;
+  const location = useLocation();
+
+  if (!user) {
+    return <Navigate to="/" state={{ from: location }} replace />;
+  }
+
   return children;
 };
 
-const AnimatedRoutes = () => {
+const PublicRoute = ({ children }) => {
+  const { user } = useAuth();
   const location = useLocation();
-  
+
+  if (user) {
+    return <Navigate to="/expenses" state={{ from: location }} replace />;
+  }
+
+  return children;
+};
+
+const AppRoutes = () => {
+  const location = useLocation();
+
   return (
-    <AnimatePresence mode='wait'>
-      <Routes location={location} key={location.pathname}>
-        <Route path="/" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route 
-          path="/expenses" 
+    <Routes location={location} key={location.pathname}>
+        <Route
+          path="/"
           element={
-            <ProtectedRoute>
-              <ExpenseTracker />
-            </ProtectedRoute>
-          } 
+            <PublicRoute>
+              <Login />
+            </PublicRoute>
+          }
         />
+        <Route
+          path="/register"
+          element={
+            <PublicRoute>
+              <Register />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/expenses"
+          element={
+            <PrivateRoute>
+              <ExpenseTracker />
+            </PrivateRoute>
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </AnimatePresence>
   );
 };
 
@@ -38,7 +65,7 @@ function App() {
   return (
     <AuthProvider>
       <NotificationProvider>
-        <AnimatedRoutes />
+        <AppRoutes />
       </NotificationProvider>
     </AuthProvider>
   );
